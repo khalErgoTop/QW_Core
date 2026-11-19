@@ -1,0 +1,93 @@
+@page
+@model TOPqwWeb_Core.Pages.Auth.AssistOptionenModel
+@inject TOPqwWeb_Core.Infrastructure.Theming.ThemeAssetService ThemeAssets
+@{
+    ViewData["Title"] = "Assistierte Suche Optionen";
+    var legacyCss = ThemeAssets.GetExistingLegacyAssetPath("AssistOptionen.css");
+}
+
+@if (legacyCss is not null)
+{
+    <link rel="stylesheet" href="@Url.Content(legacyCss)" asp-append-version="true" />
+}
+<link rel="stylesheet" href="~/css/assist-optionen.css" asp-append-version="true" />
+
+<nav class="kern-breadcrumbs" aria-label="Brotkrümelnavigation">
+    <ol class="breadcrumb">
+        <li><a class="kern-link" asp-page="/Index">Start</a></li>
+        <li><a class="kern-link" asp-page="/Auth/QWWebAdmin">Administration</a></li>
+        <li aria-current="page">Assistierte Suche Optionen</li>
+    </ol>
+</nav>
+
+<section id="AssistOptionen" class="pageContent kern-stack">
+    <div class="assist-settings kern-card" style="padding:16px">
+        <h2 class="kern-heading-2">Suchassistent – Navigation</h2>
+        <form method="post" asp-page-handler="SaveAssistSettings">
+            <label>
+                <input asp-for="AssistVisible" type="checkbox" />
+                Suchassistent in der Navigation anzeigen
+            </label>
+            <br />
+            <label asp-for="AssistName">Anzeigename im Menü</label>
+            <input asp-for="AssistName" class="assist-name kern-form-input__input" />
+            <button class="kern-button kern-button--primary" type="submit">Navbar-Einstellungen speichern</button>
+            @if (Model.SettingsSaved)
+            {
+                <span class="confirmation-label">Gespeichert.</span>
+            }
+        </form>
+    </div>
+    <br />
+
+    <h2 class="kern-heading-2">Einrichtungstypen bearbeiten</h2>
+    <div class="container kern-card" style="padding:16px">
+        <div class="services">
+            <ul id="lstServices" class="kern-list">
+                @foreach (var service in Model.Services)
+                {
+                    <li selected="@(Model.SelectedId == service.Id ? "selected" : null)">
+                        <a asp-page="/Auth/AssistOptionen" asp-route-selectedId="@service.Id">@service.DisplayName</a>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="description kern-stack">
+            <form method="post" asp-page-handler="Apply">
+                <input type="hidden" asp-for="SelectedId" />
+                <label asp-for="Name">Anzeigename</label>
+                <input class="kern-form-input__input" asp-for="Name" />
+                <br /><br />
+
+                <label asp-for="Category">Kategorie</label>
+                <input class="kern-form-input__input" asp-for="Category" />
+                <br /><br />
+
+                <label asp-for="Description">Beschreibung</label>
+                <textarea class="kern-form-input__input" asp-for="Description" rows="10"></textarea>
+                <br />
+                <button id="btnApply" class="kern-button kern-button--primary" type="submit">Übernehmen</button>
+                @if (Model.ServiceSaved)
+                {
+                    <span class="confirmation-label">Aktion erfolgreich!</span>
+                }
+            </form>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const list = document.getElementById('lstServices');
+            const key = 'AssistOptionen.ServicesScrollTop';
+            if (!list) return;
+            const scrollTop = sessionStorage.getItem(key);
+            if (scrollTop) list.scrollTop = Number.parseInt(scrollTop, 10) || 0;
+            const saveScroll = () => sessionStorage.setItem(key, String(list.scrollTop));
+            list.addEventListener('scroll', saveScroll);
+            document.querySelectorAll('form').forEach(form => form.addEventListener('submit', saveScroll));
+        })();
+    </script>
+}

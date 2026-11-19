@@ -1,0 +1,100 @@
+﻿@page
+@model TOPqwWeb_Core.Pages.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="login-page">
+    <section class="kern-card login-card" aria-labelledby="login-title">
+        <div class="kern-card__container login-card__container">
+
+        <h1 id="login-title" class="kern-title">Anmeldung</h1>
+
+        <form method="post" class="kern-stack login-form">
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div class="kern-form-input">
+                <label asp-for="Input.Username" class="kern-label"></label>
+                <input asp-for="Input.Username" class="kern-form-input__input" autocomplete="username" autofocus />
+                <span asp-validation-for="Input.Username" class="kern-error"></span>
+            </div>
+
+            <div class="kern-form-input">
+                <label asp-for="Input.Passwort" class="kern-label"></label>
+                <input asp-for="Input.Passwort" class="kern-form-input__input" type="password" autocomplete="current-password" />
+            </div>
+
+            <label class="kern-form-check">
+                <input asp-for="Input.StayLoggedIn" class="kern-form-check__checkbox" type="checkbox" />
+                <span class="kern-label">Angemeldet bleiben</span>
+            </label>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="kern-alert kern-alert--danger" role="alert">
+                    <span class="kern-icon kern-icon--danger" aria-hidden="true"></span>
+                    <div class="kern-alert__body"><span>@Model.ErrorMessage</span></div>
+                </div>
+            }
+            @if (Model.WaitSeconds > 0)
+            {
+                <div class="kern-alert kern-alert--warning" role="status">
+                    <span class="kern-icon kern-icon--warning" aria-hidden="true"></span>
+                    <div class="kern-alert__body"><span>Sie können sich in @Model.WaitSeconds Sekunden erneut einloggen.</span></div>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.PasswordRequestMessage))
+            {
+                <div class="kern-alert kern-alert--info" role="status">
+                    <span class="kern-icon kern-icon--info" aria-hidden="true"></span>
+                    <div class="kern-alert__body"><span>@Model.PasswordRequestMessage</span></div>
+                </div>
+            }
+            @if (Model.ShowMailLink && !string.IsNullOrWhiteSpace(Model.SupportMail))
+            {
+                <a href="mailto:@Model.SupportMail?subject=Kennung%20fuer%20TOPqm-Login" class="kern-btn kern-btn--tertiary kern-btn--block"><span class="kern-label">Kennung anfordern</span></a>
+            }
+
+            <button type="submit" class="kern-btn kern-btn--primary kern-btn--block"><span class="kern-label">Anmelden</span></button>
+        </form>
+
+        <div class="login-secondary-actions">
+            <form method="post" asp-page-handler="PasswordRequest">
+                <input type="hidden" asp-for="Input.Username" />
+                <button type="submit" class="kern-btn kern-btn--tertiary kern-btn--block"><span class="kern-label">Passwort anfordern</span></button>
+            </form>
+            <a asp-page="/Index" class="kern-btn kern-btn--tertiary kern-btn--block"><span class="kern-label">Abbrechen</span></a>
+        </div>
+        </div>
+    </div>
+</section>
+</div>
+
+<style>
+    .login-page {
+        max-width: var(--kern-480);
+        margin: var(--kern-metric-space-6x-large) auto;
+        padding: 0 var(--kern-metric-space-default);
+    }
+
+    .login-card__container {
+        gap: var(--kern-metric-space-large);
+    }
+
+    .login-form {
+        gap: var(--kern-metric-space-large);
+    }
+
+    .login-secondary-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--kern-metric-space-small);
+        margin-top: var(--kern-metric-space-large);
+        padding-top: var(--kern-metric-space-large);
+        border-top: var(--kern-metric-border-width-light) solid var(--kern-color-layout-border-contextual);
+    }
+
+    .login-secondary-actions form {
+        display: contents;
+    }
+</style>

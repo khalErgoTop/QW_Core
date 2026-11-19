@@ -1,0 +1,120 @@
+﻿@page
+@model TOPqwWeb_Core.Pages.ChatbotModel
+@{
+    ViewData["Title"] = "Chatbot";
+    ViewData["UseLegacyTheme"] = false;
+}
+
+<main class="chatbot-page kern-stack">
+    <header>
+        <h1 class="kern-heading-1">Einrichtungsassistent</h1>
+        <p class="kern-body">
+            Beschreiben Sie, welche Einrichtung oder welches Angebot Sie suchen.
+            Ich helfe Ihnen dabei, passende Einrichtungen zu finden.
+        </p>
+    </header>
+
+    <section class="chatbot-card kern-card">
+        <div class="kern-card__container">
+            <form method="post">
+                <div class="kern-form-input">
+                    <label asp-for="Question" class="kern-label">
+                        Ihre Frage
+                    </label>
+                    <textarea asp-for="Question"
+                              class="kern-form-input__input"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="Beispiel: Wo finde ich Werkstätten für Menschen mit Behinderung?"
+                              required></textarea>
+                    <span asp-validation-for="Question"
+                          class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="kern-btn kern-btn--primary">
+                    <span class="kern-icon kern-icon--search" aria-hidden="true"></span>
+                    <span class="kern-label">Frage senden</span>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    @if (Model.Response is not null)
+    {
+        <section class="chatbot-card kern-card" aria-live="polite">
+            <div class="kern-card__container">
+                <h2 class="kern-title">Antwort</h2>
+
+                <p>@Model.Response.Message</p>
+
+                @if (Model.Response.Facilities.Count > 0)
+                {
+                    <h3 class="kern-title">Gefundene Einrichtungen</h3>
+
+                    <ul class="facility-list kern-list">
+                        @foreach (var facility in Model.Response.Facilities)
+                        {
+                            <li class="facility-item">
+                                <strong>@facility.Name</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(facility.FacilityType))
+                                {
+                                    <p>@facility.FacilityType</p>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(facility.Address))
+                                {
+                                    <p>@facility.Address</p>
+                                }
+
+                                @if (facility.DistanceKm.HasValue)
+                                {
+                                    <p>@facility.DistanceKm.Value.ToString("0.0") km</p>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (Model.Response.HasMoreResults)
+                {
+                    <p>Es gibt weitere Suchergebnisse. Angezeigt werden maximal 50.</p>
+                }
+            </div>
+        </section>
+    }
+</main>
+
+<style>
+    .chatbot-page {
+        max-width: 850px;
+        margin: 0 auto;
+        padding: 1.5rem 0 3rem;
+    }
+
+    .chatbot-card {
+        margin-top: 1.5rem;
+    }
+
+    .chatbot-card form {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .facility-list {
+        display: grid;
+        gap: 1rem;
+        padding: 0;
+    }
+
+    .facility-item {
+        list-style: none;
+        padding: 1rem;
+        border: 1px solid var(--kern-color-layout-border);
+        border-radius: .5rem;
+    }
+
+    .facility-item p {
+        margin: .35rem 0 0;
+    }
+</style>

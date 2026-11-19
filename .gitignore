@@ -1,0 +1,15 @@
+﻿.vs/
+bin/
+obj/
+node_modules/
+
+# Visual Studio user-specific files
+*.user
+*.suo
+
+# Test results
+TestResults/
+
+# Configuration 
+appsettings.json
+appsettings.*.json

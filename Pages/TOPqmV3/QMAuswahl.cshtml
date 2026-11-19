@@ -1,0 +1,96 @@
+@page
+@model TOPqwWeb_Core.Pages.QM.QMAuswahlModel
+@{
+    ViewData["Title"] = "QM-Bogenauswahl";
+}
+<link rel="stylesheet" href="~/css/qmbogen.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/qmauswahl.css" asp-append-version="true" />
+
+<div class="qm-page qm-overview">
+    <nav class="qm-breadcrumb" aria-label="Brotkrümelnavigation">
+        <a asp-page="/Index">Start</a><span aria-hidden="true"> / </span>
+        <a asp-page="/TOPqmV3/QMMain">Qualitätsmanagement</a><span aria-hidden="true"> / </span>
+        <span aria-current="page">QM-Bogenauswahl</span>
+    </nav>
+    <header class="qm-header"><div class="qm-header__identity">
+        <p class="qm-eyebrow">Qualitätsmanagement / Aktuelle Berichte</p>
+        <h1>QM-Bogenauswahl</h1>
+        <p>Wählen Sie eine Leistung, um deren verfügbare QM-Bögen anzuzeigen.</p>
+    </div></header>
+
+    <div asp-validation-summary="All" class="qm-validation" role="alert"></div>
+    <form method="get" class="qm-filter" action="@Url.Page("/TOPqmV3/QMAuswahl")">
+        <div><label asp-for="BogenstatusSelection">Bogenstatus</label>
+            <select asp-for="BogenstatusSelection" class="qm-input">
+                @foreach (var status in Model.Bogenstatus)
+                {
+                    <option value="@status.Value">@status.Text.Replace('_', ' ')</option>
+                }
+            </select>
+        </div>
+        @if (Model.SelectedFacility is not null)
+        {
+            <input type="hidden" name="EIID" value="@Model.SelectedFacility.EIID" />
+        }
+        <button type="submit" class="qm-button qm-button--primary">Filtern</button>
+    </form>
+
+    <section id="qm-boegen" class="qm-panel" aria-labelledby="qm-boegen-title">
+        <h2 id="qm-boegen-title">QM-Bögen</h2>
+        @if (Model.SelectedFacility is null)
+        {
+            <p>@(string.IsNullOrWhiteSpace(Model.EIID) ? "Bitte wählen Sie unten eine Leistung aus." : "Die gewählte Leistung ist für diesen Status nicht verfügbar. Bitte wählen Sie eine andere Leistung oder einen anderen Status.")</p>
+        }
+        else
+        {
+            <p>Ausgewählte Leistung: <strong>@Model.SelectedFacility.Einrichtungsname (@Model.SelectedFacility.Einrichtungskennzeichen)</strong></p>
+            @if (Model.SelectableBoegen.Count == 0)
+            {
+                <p>Für diese Leistung sind zum gewählten Status keine bestehenden QM-Bögen verfügbar.</p>
+            }
+            else
+            {
+                <ul class="qm-results">
+                    @foreach (var bogen in Model.SelectableBoegen)
+                    {
+                        <li><div><strong>@bogen.Bezeichnung</strong><span>@bogen.LayoutJahr · @bogen.LayoutBezeichnung</span><span>Status: @(Model.Bogenstatus.FirstOrDefault(s => s.Value == bogen.Status)?.Text.Replace('_', ' ') ?? "Unbekannt")</span></div>
+                            <form method="post" asp-page-handler="Open">
+                                <input type="hidden" name="EIID" value="@Model.SelectedFacility.EIID" />
+                                <input type="hidden" name="QLID" value="@bogen.QLID" />
+                                <input type="hidden" name="BogenstatusSelection" value="@Model.BogenstatusSelection" />
+                                <button type="submit" class="qm-button qm-button--secondary" aria-label="@bogen.Bezeichnung öffnen">Öffnen</button>
+                            </form>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    </section>
+
+    <section class="qm-panel" aria-labelledby="qm-leistungen-title">
+        <h2 id="qm-leistungen-title">Alle verfügbaren Leistungen</h2>
+        @if (Model.Facilities.Count == 0)
+        {
+            <p>Keine verfügbaren Leistungen zum gewählten Status gefunden.</p>
+        }
+        else
+        {
+            <ul class="qm-results">
+                @foreach (var facility in Model.Facilities)
+                {
+                    var selected = Model.SelectedFacility?.EIID == facility.EIID;
+                    <li><div><strong>@facility.Einrichtungsname</strong><span>@facility.Einrichtungskennzeichen</span></div>
+                        @if (facility.FKETID.HasValue)
+                        {
+                            <a class="qm-button qm-button--secondary" asp-page="/TOPqmV3/QMAuswahl" asp-route-EIID="@facility.EIID" asp-route-BogenstatusSelection="@Model.BogenstatusSelection" asp-fragment="qm-boegen" aria-current="@(selected ? "true" : null)">@(selected ? "Ausgewählt" : "QM-Bögen anzeigen")</a>
+                        }
+                        else
+                        {
+                            <span>Kein Einrichtungstyp verfügbar</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</div>

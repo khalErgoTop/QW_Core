@@ -120,13 +120,22 @@ namespace TOPqwWeb_Core.Legacy.Adapters
                         : string.Join(" ", Enumerable.Range(6, 4)
                             .Select(index => reader.IsDBNull(index) ? null : Convert.ToString(reader.GetValue(index)))
                             .Where(value => !string.IsNullOrWhiteSpace(value)));
+                    var facilityName = Convert.ToString(reader.GetValue(2)) ?? string.Empty;
+                    var locationName = reader.IsDBNull(5)
+                        ? null
+                        : Convert.ToString(reader.GetValue(5));
+
                     results.Add(new PublicSearchResultResponse
                     {
                         EIID = Convert.ToString(reader.GetValue(0)) ?? string.Empty,
                         STUID = reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1)),
-                        Name = reader.IsDBNull(5) || string.IsNullOrWhiteSpace(Convert.ToString(reader.GetValue(5)))
-                            ? Convert.ToString(reader.GetValue(2)) ?? string.Empty
-                            : $"{Convert.ToString(reader.GetValue(2))} - {Convert.ToString(reader.GetValue(5))}",
+                        Name = string.IsNullOrWhiteSpace(locationName) ||
+                               string.Equals(
+                                   facilityName.Trim(),
+                                   locationName.Trim(),
+                                   StringComparison.OrdinalIgnoreCase)
+                            ? facilityName
+                            : $"{facilityName} - {locationName}",
                         FacilityType = reader.IsDBNull(3) ? null : Convert.ToString(reader.GetValue(3)),
                         FacilityIndicator = reader.IsDBNull(4) ? null : Convert.ToString(reader.GetValue(4)),
                         Address = address,

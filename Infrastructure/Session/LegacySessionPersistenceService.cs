@@ -41,6 +41,8 @@ public sealed class LegacySessionPersistenceService
             {
                 foreach (var value in values)
                 {
+                    if (value.Key == SessionKeys.ChatbotConversationState)
+                        continue;
                     try
                     {
                         session.Set(value.Key, Convert.FromBase64String(value.Value));
@@ -61,7 +63,8 @@ public sealed class LegacySessionPersistenceService
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var key in session.Keys)
         {
-            if (key is SessionLoadedKey or SkipSaveKey)
+            if (key is SessionLoadedKey or SkipSaveKey ||
+                key == SessionKeys.ChatbotConversationState)
             {
                 continue;
             }

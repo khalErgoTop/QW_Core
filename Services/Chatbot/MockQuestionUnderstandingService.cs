@@ -7,8 +7,9 @@ namespace TOPqwWeb_Core.Services.Chatbot;
 public class MockQuestionUnderstandingService : IQuestionUnderstandingService
 {
     public Task<ChatbotIntent> UnderstandAsync(
-        string question,
-        CancellationToken cancellationToken)
+    string question,
+    ChatbotConversationState? conversationState,
+    CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 

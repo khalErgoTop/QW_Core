@@ -49,6 +49,8 @@ builder.Services.AddHttpClient<IQuestionUnderstandingService, OllamaQuestionUnde
     client.Timeout = TimeSpan.FromMinutes(3);
 });
 
+builder.Services.AddScoped<ChatbotConversationStore>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

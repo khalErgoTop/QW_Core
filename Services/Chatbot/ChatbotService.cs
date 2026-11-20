@@ -37,7 +37,7 @@ public class ChatbotService
         }
 
         var intent = await _understandingService.UnderstandAsync(
-            question, cancellationToken);
+            question, null, cancellationToken);
 
         if (intent.NeedsClarification ||
             string.Equals(intent.Intent, "unknown",

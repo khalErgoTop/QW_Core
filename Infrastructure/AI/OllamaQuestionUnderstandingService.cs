@@ -30,8 +30,9 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
     }
 
     public async Task<ChatbotIntent> UnderstandAsync(
-        string question,
-        CancellationToken cancellationToken)
+    string question,
+    ChatbotConversationState? conversationState,
+    CancellationToken cancellationToken)
     {
         var model = _configuration["Ollama:Model"] ?? "phi3:mini";
 
@@ -69,7 +70,21 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
             - Bei unklarer Frage: needsClarification = true und eine kurze
               clarificationQuestion auf Deutsch.
             - Nicht genannte Angaben müssen null sein.
+            - Berücksichtige den bisherigen Gesprächskontext.
+            - Eine kurze Nachricht kann eine Ergänzung oder Änderung der vorherigen Suche sein.
+            - Übernimm bisherige Suchkriterien, wenn der Benutzer sie nicht ausdrücklich ändert.
+            - Ändere nur die Kriterien, die der Benutzer tatsächlich ändern möchte.
+            - Wenn der Benutzer eine völlig neue Suche beginnt, verwende nicht die alten Suchkriterien.
+            - Erfinde keine fehlenden Angaben.
             """;
+
+        var conversationContext = conversationState is null
+        ? "Es gibt noch keinen bisherigen Gesprächskontext."
+        : JsonSerializer.Serialize(new
+        {
+            previousCriteria = conversationState.CurrentIntent,
+            recentMessages = conversationState.RecentMessages.TakeLast(6)
+        }, JsonOptions);
 
         var request = new
         {
@@ -79,7 +94,17 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
             messages = new[]
             {
                 new { role = "system", content = systemPrompt },
-                new { role = "user", content = question }
+                new
+                {
+                    role = "user",
+                    content = $"""
+                        Bisheriger Gesprächskontext:
+                        {conversationContext}
+
+                        Aktuelle Benutzernachricht:
+                        {question}
+                        """
+                }
             },
             options = new
             {

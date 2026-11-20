@@ -96,8 +96,12 @@ public class ChatbotService
             new PublicSearchRequest(),
             cancellationToken);
 
-        var matchingType = ResolveFacilityType(
+        var matchingTypes = ResolveBroadFacilityTypes(
             intent, metadata.FacilityTypes);
+
+        var matchingType = matchingTypes.Count == 0
+            ? ResolveFacilityType(intent, metadata.FacilityTypes)
+            : null;
 
         _logger.LogInformation(
             "CHATBOT TYPE MATCH: {MatchedType}",
@@ -117,8 +121,7 @@ public class ChatbotService
 
         if (matchingType is not null)
         {
-            // A matching facility type was found.
-            // Search directly using its real database ID.
+            // A specific facility type was found.
             var result = await _searchService.SearchAsync(
                 new PublicSearchRequest
                 {
@@ -132,6 +135,31 @@ public class ChatbotService
                 cancellationToken);
 
             AddResults(result);
+        }
+        else if (matchingTypes.Count > 0)
+        {
+            // A broad concept matches multiple facility types.
+            foreach (var type in matchingTypes)
+            {
+                _logger.LogInformation(
+                    "CHATBOT MULTI-TYPE MATCH: {Name} | ID: {Id}",
+                    type.Name,
+                    type.Id);
+
+                var result = await _searchService.SearchAsync(
+                    new PublicSearchRequest
+                    {
+                        FacilityType = type.Id,
+                        City = city,
+                        PostalCode = postalCode,
+                        DistanceKm = distanceKm,
+                        WithFreePlaces = false,
+                        FacilityFeatures = []
+                    },
+                    cancellationToken);
+
+                AddResults(result);
+            }
         }
         else
         {
@@ -244,6 +272,35 @@ public class ChatbotService
                 }
             }
         }
+    }
+
+    private static List<PublicSearchTypeResponse> ResolveBroadFacilityTypes(
+    ChatbotIntent intent,
+    List<PublicSearchTypeResponse> availableTypes)
+    {
+        var category = Normalize(intent.Category ?? "");
+        var facilityType = Normalize(intent.FacilityType ?? "");
+
+        var searchTerms = (intent.SearchTerms ?? [])
+            .Select(Normalize)
+            .ToList();
+
+        // Housing is a broad concept that can include several services.
+        var isHousingRequest =
+            category == "wohnen" ||
+            facilityType == "wohnheim" ||
+            searchTerms.Contains("wohnen") ||
+            searchTerms.Contains("wohnheim");
+
+        if (!isHousingRequest)
+            return [];
+
+        // Match against actual facility type names, not broad categories.
+        // This also catches Wohnraum and wohnbegleitende services.
+        return availableTypes
+            .Where(type =>
+                Normalize(type.Name).Contains("wohn"))
+            .ToList();
     }
 
 

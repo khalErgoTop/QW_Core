@@ -136,13 +136,26 @@ public class ChatbotService
         else
         {
             // No facility type matched. Try individual search terms.
+            var genericTerms = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase)
+                {
+                    "Behinderung",
+                    "Behinderte",
+                    "Menschen",
+                    "Menschen mit Behinderung",
+                    "Einrichtung",
+                    "Einrichtungen"
+                };
+
             var searchTerms = (intent.SearchTerms ?? [])
                 .Where(term => !string.IsNullOrWhiteSpace(term))
-                .Where(term => !Regex.IsMatch(term.Trim(), @"^\d{5}$"))
+                .Select(term => term.Trim())
+                .Where(term => !Regex.IsMatch(term, @"^\d{5}$"))
                 .Where(term => !string.Equals(
-                    term.Trim(),
+                    term,
                     city,
                     StringComparison.OrdinalIgnoreCase))
+                .Where(term => !genericTerms.Contains(term))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -233,12 +246,12 @@ public class ChatbotService
         }
     }
 
+
     private static PublicSearchTypeResponse? ResolveFacilityType(
-    ChatbotIntent intent,
-    List<PublicSearchTypeResponse> availableTypes)
+        ChatbotIntent intent,
+        List<PublicSearchTypeResponse> availableTypes)
     {
-        PublicSearchTypeResponse? bestMatch = null;
-        var highestScore = 0;
+        var scoredTypes = new List<(PublicSearchTypeResponse Type, int Score)>();
 
         foreach (var type in availableTypes)
         {
@@ -247,7 +260,6 @@ public class ChatbotService
 
             var score = 0;
 
-            // Explicit facility type has the highest priority.
             if (!string.IsNullOrWhiteSpace(intent.FacilityType))
             {
                 var facilityType = Normalize(intent.FacilityType);
@@ -259,7 +271,6 @@ public class ChatbotService
                 }
             }
 
-            // Explicit category is also a strong match.
             if (!string.IsNullOrWhiteSpace(intent.Category))
             {
                 var category = Normalize(intent.Category);
@@ -271,17 +282,14 @@ public class ChatbotService
                 }
             }
 
-            // Search terms provide supporting evidence only.
             foreach (var term in intent.SearchTerms ?? [])
             {
                 if (string.IsNullOrWhiteSpace(term))
                     continue;
 
                 var normalizedTerm = Normalize(term);
-                var normalizedLocation = Normalize(intent.Location ?? "");
 
-                // Never use location or postal code as type-matching evidence.
-                if (normalizedTerm == normalizedLocation ||
+                if (normalizedTerm == Normalize(intent.Location ?? "") ||
                     normalizedTerm == Normalize(intent.PostalCode ?? ""))
                 {
                     continue;
@@ -294,16 +302,35 @@ public class ChatbotService
                 }
             }
 
-            if (score > highestScore)
+            if (score > 0)
             {
-                highestScore = score;
-                bestMatch = type;
+                scoredTypes.Add((type, score));
             }
         }
 
-        // Weak keyword matches must not determine a database facility type.
-        return highestScore >= 10 ? bestMatch : null;
+        var rankedTypes = scoredTypes
+            .OrderByDescending(x => x.Score)
+            .ToList();
+
+        if (rankedTypes.Count == 0)
+            return null;
+
+        var bestMatch = rankedTypes[0];
+
+        // A weak or ambiguous match must not select a database type.
+        if (bestMatch.Score < 10)
+            return null;
+
+        // Require a meaningful score difference from the second candidate.
+        if (rankedTypes.Count > 1 &&
+            bestMatch.Score - rankedTypes[1].Score < 5)
+        {
+            return null;
+        }
+
+        return bestMatch.Type;
     }
+
 
     private static string Normalize(string value)
     {

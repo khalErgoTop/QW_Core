@@ -4,6 +4,10 @@
     {
         public string Intent { get; set; } = "unknown";
 
+        public string ConversationAction { get; set; } = "new_search";
+
+        public List<string> ClearCriteria { get; set; } = [];
+
         public string? FacilityType { get; set; }
 
         public string? Category { get; set; }

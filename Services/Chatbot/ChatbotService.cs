@@ -13,13 +13,17 @@ public class ChatbotService
 
     private readonly ILogger<ChatbotService> _logger;
 
+    private readonly ChatbotConversationStore _conversationStore;
+
     public ChatbotService(
-        IQuestionUnderstandingService understandingService,
-        SuchePageService searchService,
-        ILogger<ChatbotService> logger)
+    IQuestionUnderstandingService understandingService,
+    SuchePageService searchService,
+    ChatbotConversationStore conversationStore,
+    ILogger<ChatbotService> logger)
     {
         _understandingService = understandingService;
         _searchService = searchService;
+        _conversationStore = conversationStore;
         _logger = logger;
     }
 
@@ -36,8 +40,10 @@ public class ChatbotService
             };
         }
 
+        var conversationState = _conversationStore.GetState();
+
         var intent = await _understandingService.UnderstandAsync(
-            question, null, cancellationToken);
+            question, conversationState, cancellationToken);
 
         if (intent.NeedsClarification ||
             string.Equals(intent.Intent, "unknown",

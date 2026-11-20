@@ -45,6 +45,8 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
 
             {
               "intent": "find_facilities",
+              "conversationAction": "new_search",
+              "clearCriteria": [],
               "facilityType": null,
               "category": null,
               "location": null,
@@ -76,6 +78,19 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
             - Ändere nur die Kriterien, die der Benutzer tatsächlich ändern möchte.
             - Wenn der Benutzer eine völlig neue Suche beginnt, verwende nicht die alten Suchkriterien.
             - Erfinde keine fehlenden Angaben.
+            - conversationAction:
+              - new_search: Der Benutzer beginnt eine vollständig neue Suche.
+              - refine_search: Der Benutzer ergänzt oder ändert eine bestehende Suche.
+            - Bei einer kurzen Folgefrage wie "nur in Altona" oder "im Umkreis von 10 km"
+              verwende refine_search.
+            - Bei einer ausdrücklich neuen Suche oder "von vorne anfangen"
+              verwende new_search.
+            - Bei refine_search: Übernimm alle bisherigen Kriterien, die nicht geändert wurden.
+            - Bei new_search: Ignoriere sämtliche bisherigen Suchkriterien.
+            - clearCriteria: Liste der Kriterien, die der Benutzer ausdrücklich entfernen möchte.
+            - Erlaubte Werte für clearCriteria:
+              facilityType, category, location, postalCode, distanceKm, searchTerms.
+            - Wenn keine Kriterien entfernt werden sollen, gib eine leere Liste zurück.
             """;
 
         var conversationContext = conversationState is null
@@ -109,7 +124,7 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
             options = new
             {
                 temperature = 0.1,
-                num_predict = 120
+                num_predict = 180
             }
         };
 
@@ -228,6 +243,35 @@ public class OllamaQuestionUnderstandingService : IQuestionUnderstandingService
             "unsupported_request",
             "unknown"
         };
+
+        var allowedConversationActions = new[]
+        {
+            "new_search",
+            "refine_search"
+        };
+
+        if (!allowedConversationActions.Contains(
+                intent.ConversationAction,
+                StringComparer.OrdinalIgnoreCase))
+        {
+            intent.ConversationAction = "new_search";
+        }
+
+        var allowedClearCriteria = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase)
+            {
+                "facilityType",
+                "category",
+                "location",
+                "postalCode",
+                "distanceKm",
+                "searchTerms"
+            };
+
+        intent.ClearCriteria = (intent.ClearCriteria ?? [])
+            .Where(allowedClearCriteria.Contains)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         if (!allowedIntents.Contains(
                 intent.Intent,
